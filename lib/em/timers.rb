@@ -54,4 +54,43 @@ module EventMachine
       end
     end
   end
+  
+  # Creates a compensation periodic timer which compensates time drifts. 
+  #
+  #  n = 0
+  #  timer = EventMachine::CompensationPeriodicTimer.new(5) do
+  #    puts "the time is #{Time.now.to_f.round(1)}"
+  #    timer.cancel if (n+=1) > 5
+  #  end
+  #
+  class CompensationPeriodicTimer < PeriodicTimer
+    attr_accessor :resolution
+
+    # Create a new periodic timer that executes every interval seconds
+    def initialize interval, callback=nil, &block
+      # Remember the start-time to adjust intervals
+      @start = Time.now
+      
+      # Don't schedule if the next_interval is less than Resolution.
+      @resolution = 0.001
+      
+      # do the same things in PeriodicTimer.
+      @interval = interval
+      @code = callback || block
+      @cancelled = false
+      @work = method(:fire)
+      schedule
+    end
+
+    def schedule # :nodoc:
+      # Calculate the compensation and the next interval.
+      # Note that if the job is bigger than the interval,
+      # This scheduling will skip the slot. 
+      compensation = (Time.now - @start) % @interval  
+      next_interval = @interval - compensation
+      next_interval += @interval if next_interval < @resolution
+      
+      EventMachine::add_timer next_interval, @work
+    end
+  end
 end

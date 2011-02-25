@@ -352,6 +352,28 @@ module EventMachine
 
     EventMachine::PeriodicTimer.new(interval, code)
   end
+  
+  # EventMachine#add_compensation_periodic_timer adds a periodic timer to the 
+  # event loop. It takes the same parameters as the periodic timer method and 
+  # has the same behavior. However, the periodic timer has clock-drift after
+  # running for a while. This timer compensates the time-drift and adjusts 
+  # scehduling in order to keep firing events without having clock-drift.
+  # 
+  # === Usage example
+  #
+  #  EventMachine::run {
+  #    EventMachine::add_compensation_periodic_timer( 5 ) { $stderr.write "$" }
+  #  }
+  #
+  #
+  # Also see EventMachine::CompensationPeriodicTimer
+  #
+  def self.add_compensation_periodic_timer *args, &block
+    interval = args.shift
+    code = args.shift || block
+
+    EventMachine::CompensationPeriodicTimer.new(interval, code)
+  end
 
   # Cancel a timer using its signature. You can also use EventMachine::Timer#cancel
   #
